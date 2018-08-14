@@ -1,0 +1,49 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: "spring-music"
+  namespace: "default"
+  labels:
+    app: "spring-music"
+spec:
+  selector:
+    matchLabels:
+      app: "spring-music"
+  template:
+    metadata:
+      labels:
+        app: "spring-music"
+    spec:
+      containers:
+        - name: "spring-music"
+          image: "servicesapi/spring-music"
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: db-binding
+                  key: uri
+            - name: VCAP_SERVICES
+              value: '{ "azure-postgresql-9-6": [ { "credentials": { "uri": "$(DATABASE_URI)" } } ] }'
+            - name: VCAP_APPLICATION
+              value: '{}'
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "spring-music-service"
+  namespace: "default"
+  labels:
+    app: "spring-music"
+spec:
+  selector:
+    app: "spring-music"
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: "LoadBalancer"
+
